@@ -5,15 +5,17 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.utilities import SQLDatabase
 from sqlalchemy import create_engine
-# from langchain_openai import ChatOpenAI
-from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
+# from langchain_groq import ChatGroq
 import streamlit as st
 
+# Initialize the database
 def init_database(user: str, password: str, host: str, port: str, database: str) -> SQLDatabase:
   db_uri = f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}"
   engine = create_engine(db_uri)
   return SQLDatabase(engine)
 
+# Get the SQL chain
 def get_sql_chain(db: SQLDatabase):
   template = """
     You are a data analyst at a company. You are interacting with a user who is asking you questions about the company's database.
@@ -38,8 +40,8 @@ def get_sql_chain(db: SQLDatabase):
   """
   prompt = ChatPromptTemplate.from_template(template)
   
-  # llm = ChatOpenAI(model="gpt-4-0125-preview")
-  llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
+  llm = ChatOpenAI(model="gpt-4-0125-preview")
+  # llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
   
   def get_schema(_):
     return db.get_table_info()
@@ -51,6 +53,7 @@ def get_sql_chain(db: SQLDatabase):
     | StrOutputParser()
   )
 
+# Get response from the database
 def get_response(db: SQLDatabase, user_query: str, chat_history: list):
   sql_chain = get_sql_chain(db)
   
@@ -67,8 +70,8 @@ def get_response(db: SQLDatabase, user_query: str, chat_history: list):
 
   prompt = ChatPromptTemplate.from_template(template)
 
-  # llm = ChatOpenAI(model="gpt-4-0125-preview")
-  llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
+  llm = ChatOpenAI(model="gpt-4-0125-preview")
+  # llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
   
   chain = (
     RunnablePassthrough.assign(query=sql_chain).assign(
@@ -80,18 +83,21 @@ def get_response(db: SQLDatabase, user_query: str, chat_history: list):
     | StrOutputParser()
   )
   
-  return chain.invoke({
+  return chain.stream({
     "question": user_query,
     "chat_history": chat_history,
   })
 
+# Initialize the chat history
 if "chat_history" not in st.session_state:
   st.session_state.chat_history = [
     AIMessage(content="Hello! I'm the Mosaic Chatbot. How can I help you today?"),
   ]
 
+# Load the environment variables
 load_dotenv()
 
+# Set the page config
 st.set_page_config(page_title="Mosaic Chatbot", page_icon=":robot_face:")
 
 st.title("Mosaic Chatbot")
@@ -112,6 +118,7 @@ with st.sidebar:
       st.session_state.db = db
       st.success("Connected to database")
 
+# Display chat history
 for msg in st.session_state.chat_history:
   if isinstance(msg, HumanMessage):
     with st.chat_message("user"): 
@@ -120,6 +127,7 @@ for msg in st.session_state.chat_history:
     with st.chat_message("assistant"):
       st.write(msg.content)
 
+# User input
 user_query = st.chat_input("Type a question...")
 if user_query is not None and user_query.strip() != "":
   st.session_state.chat_history.append(HumanMessage(content=user_query))
@@ -128,7 +136,6 @@ if user_query is not None and user_query.strip() != "":
     st.markdown(user_query)
 
   with st.chat_message("assistant"):
-    response = get_response(st.session_state.db, user_query, st.session_state.chat_history)
-    st.markdown(response)
+    ai_response = st.write_stream(get_response(st.session_state.db, user_query, st.session_state.chat_history))
 
-  st.session_state.chat_history.append(AIMessage(content=response))
+  st.session_state.chat_history.append(AIMessage(content=ai_response))
