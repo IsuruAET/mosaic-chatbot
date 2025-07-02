@@ -135,13 +135,19 @@ with st.sidebar:
   st.text_input("Port", value="3306", key="Port")
   st.text_input("Database", value="sql12787885", key="Database")
   st.text_input("User", value="sql12787885", key="User")
-  st.text_input("Password", type="password", value="", key="Password")
+  st.text_input("Password", type="password", value="39mhaBcYC5", key="Password")
 
   if st.button("Connect"):
-    with st.spinner("Connecting to database..."):
-      db = init_database(st.session_state["User"], st.session_state["Password"], st.session_state["Host"], st.session_state["Port"], st.session_state["Database"])
-      st.session_state.db = db
-      st.success("Connected to database")
+    if not st.session_state["Password"]:
+      st.error("Please enter the database password")
+    else:
+      with st.spinner("Connecting to database..."):
+        try:
+          db = init_database(st.session_state["User"], st.session_state["Password"], st.session_state["Host"], st.session_state["Port"], st.session_state["Database"])
+          st.session_state.db = db
+          st.success("Connected to database")
+        except Exception as e:
+          st.error(f"Failed to connect to database: {str(e)}")
 
 # Display chat history
 for msg in st.session_state.chat_history:
