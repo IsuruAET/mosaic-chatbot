@@ -106,11 +106,17 @@ with st.sidebar:
   st.subheader("Settings")
   st.write("This is a chatbot that can answer questions about the Mosaic dataset.")
 
-  st.text_input("Host", value="localhost", key="Host")
+  # st.text_input("Host", value="localhost", key="Host")
+  # st.text_input("Port", value="3306", key="Port")
+  # st.text_input("Database", value="chinook", key="Database")
+  # st.text_input("User", value="root", key="User")
+  # st.text_input("Password", type="password", value="root", key="Password")
+
+  st.text_input("Host", value="sql12.freesqldatabase.com", key="Host")
   st.text_input("Port", value="3306", key="Port")
-  st.text_input("Database", value="chinook", key="Database")
-  st.text_input("User", value="root", key="User")
-  st.text_input("Password", type="password", value="root", key="Password")
+  st.text_input("Database", value="sql12787885", key="Database")
+  st.text_input("User", value="sql12787885", key="User")
+  st.text_input("Password", type="password", value="", key="Password")
 
   if st.button("Connect"):
     with st.spinner("Connecting to database..."):
