@@ -136,6 +136,8 @@ if user_query is not None and user_query.strip() != "":
     st.markdown(user_query)
 
   with st.chat_message("assistant"):
-    ai_response = st.write_stream(get_response(st.session_state.db, user_query, st.session_state.chat_history))
-
-  st.session_state.chat_history.append(AIMessage(content=ai_response))
+    if "db" not in st.session_state:
+      st.error("Please connect to a database first using the sidebar.")
+    else:
+      ai_response = st.write_stream(get_response(st.session_state.db, user_query, st.session_state.chat_history))
+      st.session_state.chat_history.append(AIMessage(content=ai_response))
