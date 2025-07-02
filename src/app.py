@@ -25,6 +25,10 @@ def get_sql_chain(db: SQLDatabase):
     
     Conversation History: {chat_history}
     
+    IMPORTANT: Only generate SQL queries for questions that can be answered using the database schema. 
+    If the question is about general programming, technology, or anything not related to the database, 
+    respond with "NOT_A_DATABASE_QUESTION" instead of a SQL query.
+    
     Write only the SQL query and nothing else. Do not wrap the SQL query in any other text, not even backticks.
     
     For example:
@@ -32,6 +36,8 @@ def get_sql_chain(db: SQLDatabase):
     SQL Query: SELECT ArtistId, COUNT(*) as track_count FROM Track GROUP BY ArtistId ORDER BY track_count DESC LIMIT 3;
     Question: Name 10 artists
     SQL Query: SELECT Name FROM Artist LIMIT 10;
+    Question: What is React.js?
+    SQL Query: NOT_A_DATABASE_QUESTION
     
     Your turn:
     
@@ -66,6 +72,10 @@ def get_response(db: SQLDatabase, user_query: str, chat_history: list):
     SQL Query: <SQL>{query}</SQL>
     User question: {question}
     SQL Response: {response}
+    
+    If the SQL Response indicates that the question cannot be answered using the database, 
+    politely explain that you can only answer questions about the data in the database and suggest 
+    asking questions about artists, tracks, albums, or other data available in the schema.
   """
 
   prompt = ChatPromptTemplate.from_template(template)
@@ -73,10 +83,19 @@ def get_response(db: SQLDatabase, user_query: str, chat_history: list):
   llm = ChatOpenAI(model="gpt-4-0125-preview")
   # llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
   
+  def execute_query(vars):
+    query = vars["query"]
+    if query.strip() == "NOT_A_DATABASE_QUESTION":
+      return "This question cannot be answered using the database. Please ask questions about the data in the database."
+    try:
+      return db.run(query)
+    except Exception as e:
+      return f"Error executing query: {str(e)}"
+  
   chain = (
     RunnablePassthrough.assign(query=sql_chain).assign(
       schema=lambda _: db.get_table_info(),
-      response=lambda vars: db.run(vars["query"]),
+      response=execute_query,
     )
     | prompt
     | llm
